@@ -103,7 +103,7 @@ func (n net) eval(input []float64) (output []float64) {
 	return output
 }
 
-func NewNet(in, out int) net {
+func NewNet(in, out int) *net {
 	var hidden int = 1
 
 	n := net{}
@@ -146,9 +146,81 @@ func NewNet(in, out int) net {
 		// hidden layer output
 		n.hidden[0].out = append(n.hidden[0].out, n.out[i].in...)
 	}
-	return n
+
+	// expose all synapses
+	return &n
+}
+
+func (n *net) Synapses() (syns []synapse) {
+	for _, neur := range n.in {
+		syns = append(syns, neur.in...)
+		syns = append(syns, neur.out...)
+	}
+	for _, neur := range n.hidden {
+		syns = append(syns, neur.out...)
+	}
+	for _, neur := range n.out {
+		syns = append(syns, neur.out...)
+	}
+	return syns
+}
+
+func toDot(n *net) {
+	var inputNeuronIDs string
+	for _, inputNeuron := range n.in {
+		inputNeuronIDs += fmt.Sprintf("%d ", inputNeuron.id)
+	}
+
+	var hiddenNeuronIDs string
+	for _, hiddenNeuron := range n.hidden {
+		hiddenNeuronIDs += fmt.Sprintf("%d ", hiddenNeuron.id)
+	}
+
+	var outNeuronIDs string
+	for _, outNeuron := range n.out {
+		outNeuronIDs += fmt.Sprintf("%d ", outNeuron.id)
+	}
+
+	var syns string
+	for _, syn := range n.Synapses() {
+		if syn.source != nil && syn.destination != nil {
+			syns += fmt.Sprintf("%d -> %d\n", syn.source.id, syn.destination.id)
+		}
+	}
+
+	fmt.Printf(`
+digraph G {
+
+    rankdir=LR
+	splines=line
+    nodesep=.05;
+
+    node [label=""];
+
+    subgraph cluster_0 {
+		color=white;
+        node [style=solid,color=blue4, shape=circle];
+		%s;
+		label = "input";
+	}
+
+	subgraph cluster_2 {
+		color=white;
+		node [style=solid,color=red2, shape=circle];
+		%s;
+		label = "hiden";
+	}
+
+	subgraph cluster_3 {
+		color=white;
+		node [style=solid,color=seagreen2, shape=circle];
+		%s;
+		label="output";
+	}
+	%s
+}`, inputNeuronIDs, hiddenNeuronIDs, outNeuronIDs, syns)
 }
 
 func sigmoid(x float64) float64 {
-	return 1 / (1 + math.Exp(x*(-1)))
+	return (1/(1+math.Exp(x*(-1))) - 0.5) * 2
 }
