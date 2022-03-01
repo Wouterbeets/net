@@ -5,153 +5,80 @@ import (
 	"math"
 )
 
-type synapse struct {
-	source      *neuron
-	destination *neuron
-	weight      float64
-	memory      *signal // when a signal passes through a synapse, it's id is stored in last signal to avoid loops
-	visited     bool
-}
-
-type neuron struct {
-	id   int
-	bias float64
-	out  []synapse // outgoing connections
-	in   []synapse // in connections
-
-}
-
 type signal struct {
-	v  float64
-	id int
-}
-
-func (n *neuron) eval(id int) signal {
-	fmt.Println("entering neuron", n.id)
-	//note that the signal passed here
-	for _, syn := range n.out {
-		syn.visited = true
-	}
-
-	// get signal from input recursivly
-	var signals []signal
-	for i := range n.in {
-		syn := n.in[i]
-		// we've hit a loop
-		if syn.visited {
-			if syn.memory == nil {
-				syn.memory = &signal{id: id}
-			}
-			sig := *syn.memory
-			fmt.Printf("mem %+v\n", sig)
-			return sig
-		}
-		// get input recursivly
-		fmt.Println("calling eval for", syn.source.id)
-		sig := syn.source.eval(id)
-		fmt.Printf("got signal from %d, sig %+v\n", syn.source.id, sig)
-
-		// apply weight
-		sig.v *= syn.weight
-		fmt.Printf("sig after weigth %+v\n", sig)
-
-		// save signal
-		signals = append(signals, sig)
-
-		// undo visit
-		syn.visited = false
-
-		// leave memory if synapse ends in loop
-		if syn.memory != nil {
-			syn.memory = &sig
-		}
-	}
-
-	var sum float64
-	for _, sig := range signals {
-		sum += sig.v
-	}
-	sig := signal{v: sigmoid(sum * n.bias), id: id}
-	fmt.Printf("returning sig %+v\n", sig)
-	return sig
-
+	v      float64
+	id     int
+	loop   bool
+	memory *signal
 }
 
 type net struct {
-	in       []neuron
-	out      []neuron
-	hidden   []neuron
+	store    map[int]*neuron
+	in       []*neuron
+	out      []*neuron
+	hidden   []*neuron
 	signalID int
 }
 
-func (n net) eval(input []float64) (output []float64) {
+func (n *net) Eval(input []float64) (output []float64, err error) {
 	n.signalID += 1
-	for i, neuron := range n.in {
-		neuron.in[0].visited = true
-		neuron.in[0].memory = &signal{v: input[i], id: n.signalID}
+	if len(input) != len(n.in) {
+		return nil, fmt.Errorf("len of input data does not match net size")
+	}
+	for i := range n.in {
+		n.in[i].memory = &signal{v: input[i], id: n.signalID}
 	}
 
 	var signals []signal
 	for _, neuron := range n.out {
-		signals = append(signals, neuron.eval(n.signalID))
+		signals = append(signals, neuron.eval2(n.signalID))
 	}
 
 	for _, s := range signals {
 		output = append(output, s.v)
 	}
 
-	return output
+	for _, neur := range n.store {
+		neur.calculated = nil
+	}
+
+	return output, nil
 }
 
-func NewNet(in, out int) *net {
-	var hidden int = 1
+func NewNet(in, hidden, out int, activationFunc func(float64) float64) *net {
 
-	n := net{}
-	neurons := make([]neuron, in+hidden+out, in+hidden+out)
+	n := new(net)
+	neurons := make([]*neuron, in+hidden+out, in+hidden+out)
 	for i := range neurons {
-		neurons[i].id = i
-	}
-	n.in = neurons[0:in]
-	n.hidden = neurons[in : in+1]
-	n.out = neurons[in+1:]
-
-	// init input synapses
-	for i := range n.in {
-
-		// environment input
-		n.in[i].in = []synapse{{destination: &n.in[i]}}
-
-		// to hidden layer
-		n.in[i].out = []synapse{{
-			source:      &n.in[i],
-			destination: &n.hidden[0],
-		}}
-
-		// hidden layer input
-		n.hidden[0].in = append(n.hidden[0].in, n.in[i].out...)
+		neurons[i] = &neuron{id: i, bias: 1}
+		neurons[i].activationFunc = activationFunc
+		if i < in {
+			neurons[i].layer = inputLayer
+		} else if i < in+hidden {
+			neurons[i].layer = hiddenLayer
+		} else {
+			neurons[i].layer = outputLayer
+		}
+		n.addNeuron(neurons[i])
 	}
 
-	// init output synapses
-	for i := range n.out {
-
-		// output to env
-		n.out[i].out = []synapse{{source: &n.out[i]}}
-
-		// hidden to output
-		n.out[i].in = []synapse{{
-			source:      &n.hidden[0],
-			destination: &n.out[i],
-		}}
-
-		// hidden layer output
-		n.hidden[0].out = append(n.hidden[0].out, n.out[i].in...)
+	// connect in to hidden
+	for i := 0; i < in; i++ {
+		for j := in; j < in+hidden; j++ {
+			n.addSynapse(i, j, 1)
+		}
 	}
 
-	// expose all synapses
-	return &n
+	// connect hidden to out
+	for i := in; i < in+hidden; i++ {
+		for j := in + hidden; j < in+hidden+out; j++ {
+			n.addSynapse(i, j, 1)
+		}
+	}
+	return n
 }
 
-func (n *net) Synapses() (syns []synapse) {
+func (n *net) Synapses() (syns []*synapse) {
 	for _, neur := range n.in {
 		syns = append(syns, neur.in...)
 		syns = append(syns, neur.out...)
@@ -168,17 +95,17 @@ func (n *net) Synapses() (syns []synapse) {
 func toDot(n *net) {
 	var inputNeuronIDs string
 	for _, inputNeuron := range n.in {
-		inputNeuronIDs += fmt.Sprintf("%d ", inputNeuron.id)
+		inputNeuronIDs += fmt.Sprintf("%d [label=%d]\n", inputNeuron.id, inputNeuron.id)
 	}
 
 	var hiddenNeuronIDs string
 	for _, hiddenNeuron := range n.hidden {
-		hiddenNeuronIDs += fmt.Sprintf("%d ", hiddenNeuron.id)
+		hiddenNeuronIDs += fmt.Sprintf("%d [label=%d]\n", hiddenNeuron.id, hiddenNeuron.id)
 	}
 
 	var outNeuronIDs string
 	for _, outNeuron := range n.out {
-		outNeuronIDs += fmt.Sprintf("%d ", outNeuron.id)
+		outNeuronIDs += fmt.Sprintf("%d [label=%d]\n", outNeuron.id, outNeuron.id)
 	}
 
 	var syns string
@@ -191,30 +118,31 @@ func toDot(n *net) {
 	fmt.Printf(`
 digraph G {
 
-    rankdir=LR
-	splines=line
-    nodesep=.05;
+    rankdir=LR;
+	splines=line;
+    nodesep=.2;
+    ranksep=3;
 
     node [label=""];
 
     subgraph cluster_0 {
 		color=white;
         node [style=solid,color=blue4, shape=circle];
-		%s;
+		%s
 		label = "input";
 	}
 
 	subgraph cluster_2 {
 		color=white;
 		node [style=solid,color=red2, shape=circle];
-		%s;
+		%s
 		label = "hiden";
 	}
 
 	subgraph cluster_3 {
 		color=white;
 		node [style=solid,color=seagreen2, shape=circle];
-		%s;
+		%s
 		label="output";
 	}
 	%s
@@ -223,4 +151,34 @@ digraph G {
 
 func sigmoid(x float64) float64 {
 	return (1/(1+math.Exp(x*(-1))) - 0.5) * 2
+}
+
+func (n *net) addSynapse(inID, outID int, weight float64) error {
+	inNeur, outNeur := n.store[inID], n.store[outID]
+	s := &synapse{
+		source:      inNeur,
+		destination: outNeur,
+		weight:      weight,
+	}
+	inNeur.out = append(inNeur.out, s)
+	outNeur.in = append(outNeur.in, s)
+	return nil
+}
+
+func (n *net) addNeuron(neur *neuron) error {
+	if n.store == nil {
+		n.store = make(map[int]*neuron)
+	}
+	switch neur.layer {
+	case inputLayer:
+		n.in = append(n.in, neur)
+	case hiddenLayer:
+		n.hidden = append(n.hidden, neur)
+	case outputLayer:
+		n.out = append(n.out, neur)
+	default:
+		return fmt.Errorf("unknown layertype for neuron %d", neur.id)
+	}
+	n.store[neur.id] = neur
+	return nil
 }
