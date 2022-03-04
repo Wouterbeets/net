@@ -32,8 +32,8 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-// NewBuilder returns a network builder with default values
-// to customize; call its methods
+// NewBuilder returns a network builder with default values.
+// To customize; call its methods.
 // Build() returns the configured network
 func NewBuilder() *Builder { return defaultBuilder() }
 
@@ -46,33 +46,6 @@ func defaultBuilder() *Builder {
 		weightFunc:     defaultWeightFunc,
 		biasFunc:       defaultBiasFunc,
 	}
-}
-
-// ActivationFunc sets the activation func the neurons will use
-func (b *Builder) ActivationFunc(f func(float64) float64) *Builder {
-	b.activationFunc = f
-	return b
-}
-
-// Size sets the net's input, output, and hidden layer size
-func (b *Builder) Size(inputSize, hiddenSize, outputSize int) *Builder {
-	b.inSize = inputSize
-	b.hiddenSize = hiddenSize
-	b.outSize = outputSize
-	return b
-}
-
-// WeightFunc sets the func used to initialise the synapse's weight
-func (b *Builder) WeightFunc(f func() float64) *Builder {
-	b.weightFunc = f
-	return b
-}
-
-// WeightFunc sets the func used to initialise the neuron's bias
-func (b *Builder) BiasFunc(f func() float64) *Builder {
-	b.biasFunc = f
-	return b
-
 }
 
 // Build builds the network
@@ -100,4 +73,31 @@ func (b *Builder) Build() (*Net, error) {
 	}
 	n := newNet(b)
 	return n, nil
+}
+
+// ActivationFunc sets the activation func the neurons will use
+func (b *Builder) ActivationFunc(f func(float64) float64) *Builder {
+	b.activationFunc = f
+	return b
+}
+
+// WeightFunc sets the func used to initialise the synapse's weight
+func (b *Builder) WeightFunc(f func() float64) *Builder {
+	b.weightFunc = f
+	return b
+}
+
+// WeightFunc sets the func used to initialise the neuron's bias
+func (b *Builder) BiasFunc(f func() float64) *Builder {
+	b.biasFunc = f
+	return b
+
+}
+
+// Size sets the net's input, output, and hidden layer size
+func (b *Builder) Size(inputSize, hiddenSize, outputSize int) *Builder {
+	b.inSize = inputSize
+	b.hiddenSize = hiddenSize
+	b.outSize = outputSize
+	return b
 }

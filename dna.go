@@ -2,15 +2,18 @@ package net
 
 import "fmt"
 
+// DNA encodes a network
 type DNA []float64
 
+// NetToDna encodes the network to dna
 func NetToDna(n *Net) (dna DNA) {
-	for _, s := range n.Synapses() {
+	for _, s := range n.synapses() {
 		dna = append(dna, s.DNA()...)
 	}
 	return dna
 }
 
+// String for fmt.Stringer
 func (dna DNA) String() string {
 	i := 0
 	ret := ""

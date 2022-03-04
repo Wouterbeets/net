@@ -15,5 +15,4 @@ func TestNetToDNA(t *testing.T) {
 	if len(dna) != expected {
 		t.Error("len dna unexpected", len(dna), expected)
 	}
-	toDot(n)
 }

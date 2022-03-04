@@ -12,6 +12,7 @@ type signal struct {
 	memory *signal
 }
 
+// Net holds the neural network
 type Net struct {
 	store          map[int]*neuron
 	in             []*neuron
@@ -67,7 +68,11 @@ func newNet(b *Builder) *Net {
 	return n
 }
 
+// Eval sends the input through the network and returns the output
 func (n *Net) Eval(input []float64) (output []float64, err error) {
+	if n == nil {
+		return nil, fmt.Errorf("Net not initialised, use the Builder")
+	}
 	n.signalID += 1
 	if len(input) != len(n.in) {
 		return nil, fmt.Errorf("len of input data does not match net size")
@@ -92,7 +97,7 @@ func (n *Net) Eval(input []float64) (output []float64, err error) {
 	return output, nil
 }
 
-func (n *Net) Synapses() (syns []*synapse) {
+func (n *Net) synapses() (syns []*synapse) {
 	for _, neur := range n.in {
 		syns = append(syns, neur.in...)
 		syns = append(syns, neur.out...)
@@ -123,7 +128,7 @@ func toDot(n *Net) {
 	}
 
 	var syns string
-	for _, syn := range n.Synapses() {
+	for _, syn := range n.synapses() {
 		if syn.source != nil && syn.destination != nil {
 			syns += fmt.Sprintf("%d -> %d\n", syn.source.id, syn.destination.id)
 		}
