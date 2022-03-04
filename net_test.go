@@ -4,11 +4,26 @@ import (
 	"testing"
 )
 
+func simple(f float64) float64 {
+	return f
+}
+
+func fakeWeight() float64 {
+	return 1
+}
+
 func TestNewNet(t *testing.T) {
 	inSize := 2
 	outSize := 20
 	hiddenSize := 20
-	net := newNet(inSize, hiddenSize, outSize, simple, defaultWeightFunc)
+
+	net, err := NewBuilder(inSize, hiddenSize, outSize).
+		ActivationFunc(simple).
+		WeightFunc(defaultWeightFunc).
+		Build()
+	if err != nil {
+		t.Error(err)
+	}
 	if len(net.in) != inSize {
 		t.Error("len of in not", inSize)
 	}
@@ -20,13 +35,19 @@ func TestNewNet(t *testing.T) {
 		t.Error(err)
 	}
 	if len(out) != outSize {
-		t.FailNow()
+		t.Error("len output unexpected")
 	}
-	//	toDot(net)
 }
 
-func TestAddNeuron(t *testing.T) {
-	n := newNet(2, 2, 2, simple, defaultWeightFunc)
+func TestNeuronStore(t *testing.T) {
+	n, err := NewBuilder(2, 2, 2).
+		ActivationFunc(simple).
+		WeightFunc(defaultWeightFunc).
+		Build()
+	if err != nil {
+		t.Error(err)
+	}
+
 	before := n.in[0].bias
 	n.store[0].bias = 200
 	after := n.in[0].bias
@@ -35,12 +56,15 @@ func TestAddNeuron(t *testing.T) {
 	}
 }
 
-func simple(f float64) float64 {
-	return f
-}
-
 func TestMem(t *testing.T) {
-	n := newNet(2, 2, 2, simple, defaultWeightFunc)
+	n, err := NewBuilder(2, 2, 2).
+		ActivationFunc(simple).
+		WeightFunc(fakeWeight).
+		Build()
+	if err != nil {
+		t.Error(err)
+	}
+
 	n.addNeuron(&neuron{
 		id:             6,
 		layer:          hiddenLayer,
@@ -86,7 +110,10 @@ func TestMem(t *testing.T) {
 }
 
 func TestSimpleMem(t *testing.T) {
-	n := newNet(2, 2, 2, simple, defaultWeightFunc)
+	n, err := NewBuilder(2, 2, 2).
+		ActivationFunc(simple).
+		WeightFunc(fakeWeight).
+		Build()
 	n.addNeuron(&neuron{
 		id:             6,
 		layer:          hiddenLayer,
