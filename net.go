@@ -22,12 +22,15 @@ type Net struct {
 	weightFunc     func() float64
 }
 
-func newNet(in, hidden, out int, activationFunc func(float64) float64, weightFunc func() float64) *Net {
+func newNet(b *Builder) *Net {
 	n := new(Net)
+	in := b.inSize
+	out := b.outSize
+	hidden := b.hiddenSize
 
 	{ // set config
-		n.activationFunc = activationFunc
-		n.weightFunc = weightFunc
+		n.activationFunc = b.activationFunc
+		n.weightFunc = b.weightFunc
 	}
 
 	{ // init neurons
@@ -75,7 +78,7 @@ func (n *Net) Eval(input []float64) (output []float64, err error) {
 
 	var signals []signal
 	for _, neuron := range n.out {
-		signals = append(signals, neuron.eval2(n.signalID))
+		signals = append(signals, neuron.eval(n.signalID))
 	}
 
 	for _, s := range signals {

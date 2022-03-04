@@ -17,9 +17,8 @@ func TestNewNet(t *testing.T) {
 	outSize := 20
 	hiddenSize := 20
 
-	net, err := NewBuilder(inSize, hiddenSize, outSize).
-		ActivationFunc(simple).
-		WeightFunc(defaultWeightFunc).
+	net, err := NewBuilder().
+		Size(inSize, hiddenSize, outSize).
 		Build()
 	if err != nil {
 		t.Error(err)
@@ -40,9 +39,7 @@ func TestNewNet(t *testing.T) {
 }
 
 func TestNeuronStore(t *testing.T) {
-	n, err := NewBuilder(2, 2, 2).
-		ActivationFunc(simple).
-		WeightFunc(defaultWeightFunc).
+	n, err := NewBuilder().
 		Build()
 	if err != nil {
 		t.Error(err)
@@ -57,7 +54,7 @@ func TestNeuronStore(t *testing.T) {
 }
 
 func TestMem(t *testing.T) {
-	n, err := NewBuilder(2, 2, 2).
+	n, err := NewBuilder().
 		ActivationFunc(simple).
 		WeightFunc(fakeWeight).
 		Build()
@@ -110,7 +107,7 @@ func TestMem(t *testing.T) {
 }
 
 func TestSimpleMem(t *testing.T) {
-	n, err := NewBuilder(2, 2, 2).
+	n, err := NewBuilder().
 		ActivationFunc(simple).
 		WeightFunc(fakeWeight).
 		Build()
@@ -151,7 +148,10 @@ func TestSimpleMem(t *testing.T) {
 }
 
 func BenchmarkEval(b *testing.B) {
-	n := newNet(2, 2, 2, nil, defaultWeightFunc)
+	n, err := NewBuilder().Build()
+	if err != nil {
+		b.Error(err)
+	}
 	for i := 0; i < b.N; i++ {
 		n.Eval([]float64{1, 1})
 	}
@@ -159,7 +159,10 @@ func BenchmarkEval(b *testing.B) {
 
 func BenchmarkEvalLarge(b *testing.B) {
 	inSize, hiddenSize, outSize := 100, 100, 100
-	n := newNet(inSize, hiddenSize, outSize, nil, defaultWeightFunc)
+	n, err := NewBuilder().Size(inSize, hiddenSize, outSize).Build()
+	if err != nil {
+		b.Error(err)
+	}
 	var input []float64
 	for i := 0; i < inSize; i++ {
 		input = append(input, 1)

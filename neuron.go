@@ -20,7 +20,7 @@ type neuron struct {
 	out []*synapse // outgoing connections
 }
 
-func (n *neuron) eval2(id int) signal {
+func (n *neuron) eval(id int) signal {
 	//	fmt.Println("entering neuron:", n.id)
 	if n.calculated != nil {
 		//		fmt.Println("taking calculated:", n.id)

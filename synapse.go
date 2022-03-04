@@ -22,13 +22,13 @@ func (s *synapse) eval(id int) signal {
 	}
 	//	fmt.Println("no loop, calling next neuron eval", s.source.id)
 	s.source.visited = true
-	sig := s.source.eval2(id)
+	sig := s.source.eval(id)
 	s.source.visited = false
 	return signal{v: sig.v * s.weight, id: id}
 }
 
 func (s *synapse) DNA() DNA {
-	dna := make([]float64, 4)
+	dna := make([]float64, 0, 4)
 	dna = append(dna, float64(s.source.id))
 	dna = append(dna, float64(s.destination.id))
 	dna = append(dna, s.weight)
