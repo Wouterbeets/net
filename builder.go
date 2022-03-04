@@ -75,6 +75,11 @@ func (b *Builder) Build() (*Net, error) {
 	return n, nil
 }
 
+// Builds the network from DNA
+func (b *Builder) BuildFromDNA(DNA) (*Net, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}
+
 // ActivationFunc sets the activation func the neurons will use
 func (b *Builder) ActivationFunc(f func(float64) float64) *Builder {
 	b.activationFunc = f
