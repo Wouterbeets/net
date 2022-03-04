@@ -8,7 +8,7 @@ func TestNewNet(t *testing.T) {
 	inSize := 2
 	outSize := 20
 	hiddenSize := 20
-	net := NewNet(inSize, hiddenSize, outSize, simple)
+	net := newNet(inSize, hiddenSize, outSize, simple, defaultWeightFunc)
 	if len(net.in) != inSize {
 		t.Error("len of in not", inSize)
 	}
@@ -26,7 +26,7 @@ func TestNewNet(t *testing.T) {
 }
 
 func TestAddNeuron(t *testing.T) {
-	n := NewNet(2, 2, 2, simple)
+	n := newNet(2, 2, 2, simple, defaultWeightFunc)
 	before := n.in[0].bias
 	n.store[0].bias = 200
 	after := n.in[0].bias
@@ -40,7 +40,7 @@ func simple(f float64) float64 {
 }
 
 func TestMem(t *testing.T) {
-	n := NewNet(2, 2, 2, simple)
+	n := newNet(2, 2, 2, simple, defaultWeightFunc)
 	n.addNeuron(&neuron{
 		id:             6,
 		layer:          hiddenLayer,
@@ -86,7 +86,7 @@ func TestMem(t *testing.T) {
 }
 
 func TestSimpleMem(t *testing.T) {
-	n := NewNet(2, 2, 2, simple)
+	n := newNet(2, 2, 2, simple, defaultWeightFunc)
 	n.addNeuron(&neuron{
 		id:             6,
 		layer:          hiddenLayer,
@@ -120,5 +120,24 @@ func TestSimpleMem(t *testing.T) {
 	}
 	if out[1] != 6 {
 		t.Errorf("out should be 6")
+	}
+}
+
+func BenchmarkEval(b *testing.B) {
+	n := newNet(2, 2, 2, nil, defaultWeightFunc)
+	for i := 0; i < b.N; i++ {
+		n.Eval([]float64{1, 1})
+	}
+}
+
+func BenchmarkEvalLarge(b *testing.B) {
+	inSize, hiddenSize, outSize := 100, 100, 100
+	n := newNet(inSize, hiddenSize, outSize, nil, defaultWeightFunc)
+	var input []float64
+	for i := 0; i < inSize; i++ {
+		input = append(input, 1)
+	}
+	for i := 0; i < b.N; i++ {
+		n.Eval(input)
 	}
 }

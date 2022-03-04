@@ -1,9 +1,5 @@
 package net
 
-import (
-	"fmt"
-)
-
 const (
 	inputLayer = iota
 	hiddenLayer
@@ -25,13 +21,13 @@ type neuron struct {
 }
 
 func (n *neuron) eval2(id int) signal {
-	fmt.Println("entering neuron:", n.id)
+	//	fmt.Println("entering neuron:", n.id)
 	if n.calculated != nil {
-		fmt.Println("taking calculated:", n.id)
+		//		fmt.Println("taking calculated:", n.id)
 		return *n.calculated
 	}
 	if n.layer == inputLayer {
-		fmt.Println("reached input layer:", n.id)
+		//		fmt.Println("reached input layer:", n.id)
 		if n.memory == nil {
 			n.memory = &signal{id: id}
 		}
@@ -43,7 +39,7 @@ func (n *neuron) eval2(id int) signal {
 		syn := n.in[i]
 		//fmt.Println("calling synapse:", n.in[i].source.id)
 		sig := syn.eval(id)
-		fmt.Println("synapse source", n.in[i].source.id, "dest:", n.in[i].destination.id, "returned:", sig)
+		//		fmt.Println("synapse source", n.in[i].source.id, "dest:", n.in[i].destination.id, "returned:", sig)
 		sigs = append(sigs, sig)
 	}
 
@@ -59,10 +55,10 @@ func (n *neuron) eval2(id int) signal {
 	sig := signal{v: n.activationFunc(sum * n.bias), id: id}
 	if n.shouldSaveMemory {
 		n.memory = &sig
-		fmt.Println("savin mem for neur:", n.id, "mem:", sig)
+		//		fmt.Println("savin mem for neur:", n.id, "mem:", sig)
 		n.shouldSaveMemory = false
 	}
 	n.calculated = &sig
-	fmt.Println("after sigmoid neuron:", n.id, "returns", sig)
+	//	fmt.Println("after sigmoid neuron:", n.id, "returns", sig)
 	return sig
 }
