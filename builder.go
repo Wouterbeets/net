@@ -15,6 +15,8 @@ type Builder struct {
 	inSize     int
 	outSize    int
 	hiddenSize int
+
+	dna []float64
 }
 
 var defaultWeightFunc func() float64
@@ -76,8 +78,22 @@ func (b *Builder) Build() (*Net, error) {
 }
 
 // Builds the network from DNA
-func (b *Builder) BuildFromDNA(DNA) (*Net, error) {
-	return nil, fmt.Errorf("not yet implemented")
+func (b *Builder) BuildFromDNA(dna DNA) (*Net, error) {
+	if b == nil {
+		b = defaultBuilder()
+	}
+	b.dna = dna
+	if b.activationFunc == nil {
+		b.activationFunc = defaultActivationFunc
+	}
+	if b.weightFunc == nil {
+		b.weightFunc = defaultWeightFunc
+	}
+	if b.biasFunc == nil {
+		b.biasFunc = defaultBiasFunc
+	}
+	//_ := newNet(b)
+	return nil, fmt.Errorf("not implemented")
 }
 
 // ActivationFunc sets the activation func the neurons will use
