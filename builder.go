@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Builder builds a neural net
 type Builder struct {
 	activationFunc func(float64) float64
 	weightFunc     func() float64
