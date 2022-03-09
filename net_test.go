@@ -23,13 +23,14 @@ func TestNewNet(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	//	toDot(net)
 	if len(net.in) != inSize {
 		t.Error("len of in not", inSize)
 	}
 	if len(net.out) != outSize {
 		t.Error("len of out not", outSize)
 	}
-	out, err := net.Eval([]float64{1, 2})
+	out, err := net.Eval([]float64{1, 2}, 20)
 	if err != nil {
 		t.Error(err)
 	}
@@ -78,7 +79,7 @@ func TestMem(t *testing.T) {
 	n.addSynapse(6, 5, 1)
 	n.addSynapse(6, 7, 1)
 	n.addSynapse(7, 3, 1)
-	out, err := n.Eval([]float64{1, 1})
+	out, err := n.Eval([]float64{1, 1}, 2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -91,7 +92,7 @@ func TestMem(t *testing.T) {
 	if out[1] != 4 {
 		t.FailNow()
 	}
-	out, err = n.Eval([]float64{1, 1})
+	out, err = n.Eval([]float64{1, 1}, 2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -104,6 +105,7 @@ func TestMem(t *testing.T) {
 	if out[1] != 8 {
 		t.FailNow()
 	}
+	//	toDot(n)
 }
 
 func TestSimpleMem(t *testing.T) {
@@ -119,7 +121,7 @@ func TestSimpleMem(t *testing.T) {
 	})
 	n.addSynapse(3, 6, 1)
 	n.addSynapse(6, 3, 1)
-	out, err := n.Eval([]float64{1, 1})
+	out, err := n.Eval([]float64{1, 1}, 2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -132,7 +134,7 @@ func TestSimpleMem(t *testing.T) {
 	if out[1] != 4 {
 		t.Errorf("out should be 4")
 	}
-	out, err = n.Eval([]float64{1, 1})
+	out, err = n.Eval([]float64{1, 1}, 2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -153,7 +155,7 @@ func BenchmarkEval(b *testing.B) {
 		b.Error(err)
 	}
 	for i := 0; i < b.N; i++ {
-		n.Eval([]float64{1, 1})
+		n.Eval([]float64{1, 1}, 2)
 	}
 }
 
@@ -168,6 +170,6 @@ func BenchmarkEvalLarge(b *testing.B) {
 		input = append(input, 1)
 	}
 	for i := 0; i < b.N; i++ {
-		n.Eval(input)
+		n.Eval(input, 100)
 	}
 }

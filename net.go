@@ -3,13 +3,13 @@ package net
 import (
 	"fmt"
 	"math"
+	"sort"
 )
 
 type signal struct {
-	v      float64
-	id     int
-	loop   bool
-	memory *signal
+	v    float64
+	id   int
+	loop bool
 }
 
 // Net holds the neural network
@@ -51,7 +51,7 @@ func newNet(b *Builder) *Net {
 	}
 
 	{ // add synapses
-		// connect in layer to hidden layer
+		// connect the input layer to the hidden layer
 		for i := 0; i < in; i++ {
 			for j := in; j < in+hidden; j++ {
 				n.addSynapse(i, j, n.weightFunc())
@@ -69,16 +69,48 @@ func newNet(b *Builder) *Net {
 }
 
 // Eval sends the input through the network and returns the output
-func (n *Net) Eval(input []float64) (output []float64, err error) {
+// TODO add output len
+// TODO abstract input and output from network
+func (n *Net) Eval(input []float64, outputLen int) (output []float64, err error) {
 	if n == nil {
 		return nil, fmt.Errorf("Net not initialised, use the Builder")
 	}
+
 	n.signalID += 1
-	if len(input) != len(n.in) {
-		return nil, fmt.Errorf("len of input data does not match net size")
-	}
-	for i := range n.in {
-		n.in[i].memory = &signal{v: input[i], id: n.signalID}
+
+	if len(input) < len(n.in) {
+
+		// make sure slice is sorted (should not be neccesary)
+		sort.Slice(n.in, func(i, j int) bool { return n.in[i].id < n.in[j].id })
+
+		// get last negative input index
+		// and set input[0] as memory
+		var lastNegIndex int
+		for i, neur := range n.in {
+			if neur.id < 0 {
+				neur.memory = &signal{v: input[0], id: n.signalID}
+				lastNegIndex = i
+			} else {
+				break
+			}
+		}
+
+		var inputVal float64
+		for i, j := lastNegIndex, 0; i < len(n.in); i, j = i+1, j+1 {
+			if j < len(input) {
+				inputVal = input[j]
+			} else {
+				inputVal = input[len(input)-1]
+			}
+			n.in[i].memory = &signal{v: inputVal, id: n.signalID}
+
+		}
+	} else if len(input) > len(n.in) {
+		return nil, fmt.Errorf("input too big")
+	} else {
+		for i := range n.in {
+			n.in[i].memory = &signal{v: input[i], id: n.signalID}
+		}
 	}
 
 	var signals []signal
@@ -93,7 +125,12 @@ func (n *Net) Eval(input []float64) (output []float64, err error) {
 	for _, neur := range n.store {
 		neur.calculated = nil
 	}
-
+	if len(output) > outputLen {
+		return output[len(output)-outputLen:], nil
+	}
+	if len(output) < outputLen {
+		return nil, fmt.Errorf("output too short")
+	}
 	return output, nil
 }
 
