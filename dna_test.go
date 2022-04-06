@@ -15,8 +15,8 @@ func TestNetToDNA(t *testing.T) {
 	}
 	dna := NetToDna(n)
 	expected := in * hidden * out * 4
-	if len(dna) != expected {
-		t.Error("len dna unexpected", len(dna), expected)
+	if len(dna.Synapes) != expected {
+		t.Error("len dna unexpected", len(dna.Synapes), expected)
 	}
 }
 
@@ -35,9 +35,9 @@ func TestDNAToNet(t *testing.T) {
 	assert.Equal(t, len(n.store), len(n2.store))
 	assert.Equal(t, len(n.synapses()), len(n2.synapses()))
 
-	out, err := n.Eval([]float64{1, 1}, 20)
+	out, err := n.Eval([]float64{1, 1})
 	assert.NoError(t, err)
-	out2, err2 := n2.Eval([]float64{1, 1}, 20)
+	out2, err2 := n2.Eval([]float64{1, 1})
 	require.NoError(t, err2)
 
 	assert.Equal(t, out, out2)
@@ -49,15 +49,15 @@ func TestDNAToNet_with_dangling_neuron_connects(t *testing.T) {
 	assert.NoError(t, err)
 
 	dna := NetToDna(n)
-	dna = append(dna, []float64{
-		10,
-		11,
-		0,
-		0,
-	}...)
+	dna.Synapes = append(dna.Synapes, SynapseGene{
+		SourceID: 10,
+		DestID:   11,
+		Weight:   0,
+		DestBias: 0,
+	})
 	n2, err := DNAToNet(dna)
 	assert.NoError(t, err)
-	out, err := n2.Eval([]float64{1, 1}, 2)
+	out, err := n2.Eval([]float64{1, 1})
 	assert.NoError(t, err)
 	assert.Equal(t, len(out), 2)
 }
@@ -68,15 +68,15 @@ func TestDNAToNet_with_negative_neuron_ids(t *testing.T) {
 	assert.NoError(t, err)
 
 	dna := NetToDna(n)
-	dna = append(dna, []float64{
-		-1,
-		-2,
-		0,
-		0,
-	}...)
+	dna.Synapes = append(dna.Synapes, SynapseGene{
+		SourceID: -1,
+		DestID:   -2,
+		Weight:   0,
+		DestBias: 0,
+	})
 	n2, err := DNAToNet(dna)
 	assert.NoError(t, err)
-	out, err := n2.Eval([]float64{1, 1}, 2)
+	out, err := n2.Eval([]float64{1, 1})
 	assert.NoError(t, err)
 	assert.Equal(t, len(out), 2)
 }
@@ -87,16 +87,16 @@ func TestDNAToNet_with_single_synapse_loop(t *testing.T) {
 	assert.NoError(t, err)
 
 	dna := NetToDna(n)
-	dna = append(dna, []float64{
-		10,
-		10,
-		0,
-		0,
-	}...)
+	dna.Synapes = append(dna.Synapes, SynapseGene{
+		SourceID: 10,
+		DestID:   10,
+		Weight:   0,
+		DestBias: 0,
+	})
 	n2, err := DNAToNet(dna)
 	toDot(n2)
 	assert.NoError(t, err)
-	out, err := n2.Eval([]float64{1, 1}, 2)
+	out, err := n2.Eval([]float64{1, 1})
 	assert.NoError(t, err)
 	assert.Equal(t, len(out), 2)
 }

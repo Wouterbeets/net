@@ -4,7 +4,6 @@ type synapse struct {
 	source      *neuron
 	destination *neuron
 	weight      float64
-	memory      *signal
 }
 
 func (s *synapse) eval(id int) signal {
@@ -27,11 +26,10 @@ func (s *synapse) eval(id int) signal {
 	return signal{v: sig.v * s.weight, id: id}
 }
 
-func (s *synapse) DNA() DNA {
-	dna := make([]float64, 0, 4)
-	dna = append(dna, float64(s.source.id))
-	dna = append(dna, float64(s.destination.id))
-	dna = append(dna, s.weight)
-	dna = append(dna, s.destination.bias)
-	return dna
+func (s *synapse) DNA() *SynapseGene {
+	return &SynapseGene{
+		SourceID: s.source.id,
+		DestID:   s.destination.id,
+		Weight:   s.weight,
+	}
 }

@@ -3,7 +3,6 @@ package net
 import (
 	"fmt"
 	"math"
-	"sort"
 )
 
 type signal struct {
@@ -23,6 +22,14 @@ type Net struct {
 	weightFunc     func() float64
 }
 
+func (n *Net) InSize() int {
+	return len(n.in)
+}
+
+func (n *Net) OutSize() int {
+	return len(n.out)
+}
+
 func newNet(b *Builder) *Net {
 	n := new(Net)
 	in := b.inSize
@@ -37,7 +44,7 @@ func newNet(b *Builder) *Net {
 	{ // init neurons
 		neurons := make([]*neuron, in+hidden+out, in+hidden+out)
 		for i := range neurons {
-			neurons[i] = &neuron{id: i, bias: 1}
+			neurons[i] = &neuron{id: i, bias: defaultBiasFunc()}
 			neurons[i].activationFunc = n.activationFunc
 			if i < in {
 				neurons[i].layer = inputLayer
@@ -69,68 +76,34 @@ func newNet(b *Builder) *Net {
 }
 
 // Eval sends the input through the network and returns the output
-// TODO add output len
-// TODO abstract input and output from network
-func (n *Net) Eval(input []float64, outputLen int) (output []float64, err error) {
+func (n *Net) Eval(input []float64) (output []float64, err error) {
 	if n == nil {
 		return nil, fmt.Errorf("Net not initialised, use the Builder")
 	}
 
 	n.signalID += 1
 
-	if len(input) < len(n.in) {
-
-		// make sure slice is sorted (should not be neccesary)
-		sort.Slice(n.in, func(i, j int) bool { return n.in[i].id < n.in[j].id })
-
-		// get last negative input index
-		// and set input[0] as memory
-		var lastNegIndex int
-		for i, neur := range n.in {
-			if neur.id < 0 {
-				neur.memory = &signal{v: input[0], id: n.signalID}
-				lastNegIndex = i
-			} else {
-				break
-			}
-		}
-
-		var inputVal float64
-		for i, j := lastNegIndex, 0; i < len(n.in); i, j = i+1, j+1 {
-			if j < len(input) {
-				inputVal = input[j]
-			} else {
-				inputVal = input[len(input)-1]
-			}
-			n.in[i].memory = &signal{v: inputVal, id: n.signalID}
-
-		}
-	} else if len(input) > len(n.in) {
-		return nil, fmt.Errorf("input too big")
-	} else {
-		for i := range n.in {
-			n.in[i].memory = &signal{v: input[i], id: n.signalID}
-		}
+	// Set input
+	for i := range n.in {
+		n.in[i].memory = &signal{v: input[i], id: n.signalID}
 	}
 
+	// Call eval from recursivley from output to input
 	var signals []signal
 	for _, neuron := range n.out {
 		signals = append(signals, neuron.eval(n.signalID))
 	}
 
+	// get output
 	for _, s := range signals {
 		output = append(output, s.v)
 	}
 
+	// reset net
 	for _, neur := range n.store {
 		neur.calculated = nil
 	}
-	if len(output) > outputLen {
-		return output[len(output)-outputLen:], nil
-	}
-	if len(output) < outputLen {
-		return nil, fmt.Errorf("output too short")
-	}
+
 	return output, nil
 }
 
@@ -148,7 +121,7 @@ func (n *Net) synapses() (syns []*synapse) {
 	return syns
 }
 
-func toDot(n *Net) {
+func ToDot(n *Net) {
 	var inputNeuronIDs string
 	for _, inputNeuron := range n.in {
 		inputNeuronIDs += fmt.Sprintf("%d [label=%d]\n", inputNeuron.id, inputNeuron.id)
@@ -192,7 +165,7 @@ digraph G {
 		color=white;
 		node [style=solid,color=red2, shape=circle];
 		%s
-		label = "hiden";
+		label = "hidden";
 	}
 
 	subgraph cluster_3 {

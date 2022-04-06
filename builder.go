@@ -77,25 +77,6 @@ func (b *Builder) Build() (*Net, error) {
 	return n, nil
 }
 
-// Builds the network from DNA
-func (b *Builder) BuildFromDNA(dna DNA) (*Net, error) {
-	if b == nil {
-		b = defaultBuilder()
-	}
-	b.dna = dna
-	if b.activationFunc == nil {
-		b.activationFunc = defaultActivationFunc
-	}
-	if b.weightFunc == nil {
-		b.weightFunc = defaultWeightFunc
-	}
-	if b.biasFunc == nil {
-		b.biasFunc = defaultBiasFunc
-	}
-	//_ := newNet(b)
-	return nil, fmt.Errorf("not implemented")
-}
-
 // ActivationFunc sets the activation func the neurons will use
 func (b *Builder) ActivationFunc(f func(float64) float64) *Builder {
 	b.activationFunc = f
@@ -112,7 +93,6 @@ func (b *Builder) WeightFunc(f func() float64) *Builder {
 func (b *Builder) BiasFunc(f func() float64) *Builder {
 	b.biasFunc = f
 	return b
-
 }
 
 // Size sets the net's input, output, and hidden layer size

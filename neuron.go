@@ -20,6 +20,14 @@ type neuron struct {
 	out []*synapse // outgoing connections
 }
 
+func (n *neuron) DNA() *NeuronGene {
+	return &NeuronGene{
+		ID:    n.id,
+		Bias:  n.bias,
+		Layer: int(n.layer),
+	}
+}
+
 func (n *neuron) eval(id int) signal {
 	//	fmt.Println("entering neuron:", n.id)
 	if n.calculated != nil {
@@ -52,7 +60,7 @@ func (n *neuron) eval(id int) signal {
 	if n.activationFunc == nil {
 		n.activationFunc = sigmoid
 	}
-	sig := signal{v: n.activationFunc(sum * n.bias), id: id}
+	sig := signal{v: n.activationFunc((sum + n.bias) * n.bias), id: id}
 	if n.shouldSaveMemory {
 		n.memory = &sig
 		//		fmt.Println("savin mem for neur:", n.id, "mem:", sig)
