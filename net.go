@@ -3,6 +3,7 @@ package net
 import (
 	"fmt"
 	"math"
+	"sort"
 )
 
 type signal struct {
@@ -13,7 +14,7 @@ type signal struct {
 
 // Net holds the neural network
 type Net struct {
-	store          map[int]*neuron
+	neuronStore    map[int]*neuron
 	in             []*neuron
 	out            []*neuron
 	hidden         []*neuron
@@ -100,47 +101,73 @@ func (n *Net) Eval(input []float64) (output []float64, err error) {
 	}
 
 	// reset net
-	for _, neur := range n.store {
+	for _, neur := range n.neuronStore {
 		neur.calculated = nil
 	}
 
 	return output, nil
 }
 
-func (n *Net) synapses() (syns []*synapse) {
+func (n *Net) synapses() map[synapse]struct{} {
+	store := make(map[synapse]struct{})
 	for _, neur := range n.in {
-		syns = append(syns, neur.in...)
-		syns = append(syns, neur.out...)
+		for _, syn := range neur.in {
+			store[*syn] = struct{}{}
+		}
+		for _, syn := range neur.out {
+			store[*syn] = struct{}{}
+		}
 	}
 	for _, neur := range n.hidden {
-		syns = append(syns, neur.out...)
+		for _, syn := range neur.in {
+			store[*syn] = struct{}{}
+		}
+		for _, syn := range neur.out {
+			store[*syn] = struct{}{}
+		}
 	}
 	for _, neur := range n.out {
-		syns = append(syns, neur.out...)
+		for _, syn := range neur.in {
+			store[*syn] = struct{}{}
+		}
+		for _, syn := range neur.out {
+			store[*syn] = struct{}{}
+		}
 	}
-	return syns
+	return store
 }
 
 func ToDot(n *Net) {
 	var inputNeuronIDs string
 	for _, inputNeuron := range n.in {
-		inputNeuronIDs += fmt.Sprintf("%d [label=%d]\n", inputNeuron.id, inputNeuron.id)
+		inputNeuronIDs += fmt.Sprintf("\t\t%d [label=%d]\n", inputNeuron.id, inputNeuron.id)
 	}
 
 	var hiddenNeuronIDs string
 	for _, hiddenNeuron := range n.hidden {
-		hiddenNeuronIDs += fmt.Sprintf("%d [label=%d]\n", hiddenNeuron.id, hiddenNeuron.id)
+		hiddenNeuronIDs += fmt.Sprintf("\t\t%d [label=%d]\n", hiddenNeuron.id, hiddenNeuron.id)
 	}
 
 	var outNeuronIDs string
 	for _, outNeuron := range n.out {
-		outNeuronIDs += fmt.Sprintf("%d [label=%d]\n", outNeuron.id, outNeuron.id)
+		outNeuronIDs += fmt.Sprintf("\t\t%d [label=%d]\n", outNeuron.id, outNeuron.id)
 	}
 
-	var syns string
-	for _, syn := range n.synapses() {
+	var syns []synapse
+	for syn := range n.synapses() {
+		syns = append(syns, syn)
+	}
+	sort.Slice(syns, func(i, j int) bool {
+		if syns[i].source.id == syns[j].source.id {
+			return syns[i].destination.id < syns[j].destination.id
+		}
+		return syns[i].source.id < syns[j].source.id
+	})
+
+	var synsStr string
+	for _, syn := range syns {
 		if syn.source != nil && syn.destination != nil {
-			syns += fmt.Sprintf("%d -> %d\n", syn.source.id, syn.destination.id)
+			synsStr += fmt.Sprintf("\t%d -> %d\n", syn.source.id, syn.destination.id)
 		}
 	}
 
@@ -157,25 +184,25 @@ digraph G {
     subgraph cluster_0 {
 		color=white;
         node [style=solid,color=blue4, shape=circle];
-		%s
+%s
 		label = "input";
 	}
 
 	subgraph cluster_2 {
 		color=white;
 		node [style=solid,color=red2, shape=circle];
-		%s
+%s
 		label = "hidden";
 	}
 
 	subgraph cluster_3 {
 		color=white;
 		node [style=solid,color=seagreen2, shape=circle];
-		%s
+%s
 		label="output";
 	}
-	%s
-}`, inputNeuronIDs, hiddenNeuronIDs, outNeuronIDs, syns)
+%s
+}`, inputNeuronIDs, hiddenNeuronIDs, outNeuronIDs, synsStr)
 }
 
 func sigmoid(x float64) float64 {
@@ -183,7 +210,7 @@ func sigmoid(x float64) float64 {
 }
 
 func (n *Net) addSynapse(inID, outID int, weight float64) error {
-	inNeur, outNeur := n.store[inID], n.store[outID]
+	inNeur, outNeur := n.neuronStore[inID], n.neuronStore[outID]
 	s := &synapse{
 		source:      inNeur,
 		destination: outNeur,
@@ -195,8 +222,8 @@ func (n *Net) addSynapse(inID, outID int, weight float64) error {
 }
 
 func (n *Net) addNeuron(neur *neuron) error {
-	if n.store == nil {
-		n.store = make(map[int]*neuron)
+	if n.neuronStore == nil {
+		n.neuronStore = make(map[int]*neuron)
 	}
 	switch neur.layer {
 	case inputLayer:
@@ -208,6 +235,6 @@ func (n *Net) addNeuron(neur *neuron) error {
 	default:
 		return fmt.Errorf("unknown layertype for neuron %d", neur.id)
 	}
-	n.store[neur.id] = neur
+	n.neuronStore[neur.id] = neur
 	return nil
 }

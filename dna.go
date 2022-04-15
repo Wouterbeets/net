@@ -28,10 +28,10 @@ type SynapseGene struct {
 // NetToDna encodes the network to dna
 func NetToDna(n *Net) (dna DNA) {
 	dna.SynapseMap = make(map[SynapseGene]struct{})
-	for _, neur := range n.store {
+	for _, neur := range n.neuronStore {
 		dna.Neurons = append(dna.Neurons, neur.DNA())
 	}
-	for _, s := range n.synapses() {
+	for s := range n.synapses() {
 		dna.SynapseMap[*s.DNA()] = struct{}{}
 	}
 	return dna
@@ -39,7 +39,7 @@ func NetToDna(n *Net) (dna DNA) {
 
 func DNAToNet(dna DNA) (*Net, error) {
 	n := new(Net)
-	n.store = make(map[int]*neuron)
+	n.neuronStore = make(map[int]*neuron)
 
 	{ // Create neurons and add to layers
 		for _, neurGene := range dna.Neurons {
@@ -48,7 +48,7 @@ func DNAToNet(dna DNA) (*Net, error) {
 				layer: byte(neurGene.Layer),
 				bias:  neurGene.Bias,
 			}
-			n.store[neurGene.ID] = neur
+			n.neuronStore[neurGene.ID] = neur
 			switch neur.layer {
 			case inputLayer:
 				n.in = append(n.in, neur)
@@ -73,23 +73,23 @@ func DNAToNet(dna DNA) (*Net, error) {
 			var ok bool
 
 			// if source neuron from synapse doesn't exist; create it
-			if source, ok = n.store[synGene.SourceID]; !ok {
+			if source, ok = n.neuronStore[synGene.SourceID]; !ok {
 				source = &neuron{
 					id:    synGene.SourceID,
 					layer: hiddenLayer,
 					bias:  defaultBiasFunc(),
 				}
-				n.store[source.id] = source
+				n.neuronStore[source.id] = source
 			}
 
 			// if dest neuron from synapse doesn't exist; create it
-			if dest, ok = n.store[synGene.DestID]; !ok {
+			if dest, ok = n.neuronStore[synGene.DestID]; !ok {
 				dest = &neuron{
 					id:    synGene.DestID,
 					layer: hiddenLayer,
 					bias:  defaultBiasFunc(),
 				}
-				n.store[dest.id] = dest
+				n.neuronStore[dest.id] = dest
 
 			}
 
@@ -190,10 +190,10 @@ func (dna DNA) Mutate(rng *rand.Rand) {
 		neur.Bias = biases[i]
 	}
 
-	// Add synapses rareley
-	if rng.Float64() < 0.1 {
-		sourceID := rand.Intn(200)
-		destID := rand.Intn(200)
+	// Add synapses
+	if rng.Float64() < 0.9 {
+		sourceID := rand.Intn(len(dna.Neurons) + 1)
+		destID := rand.Intn(len(dna.Neurons) + 1)
 
 		sg := SynapseGene{
 			SourceID: sourceID,
@@ -203,7 +203,7 @@ func (dna DNA) Mutate(rng *rand.Rand) {
 		dna.SynapseMap[sg] = struct{}{}
 	}
 
-	// remove synapses rareley
+	// remove synapses
 	if rng.Float64() < 0.01 && len(dna.SynapseMap) > 2 {
 		for key := range dna.SynapseMap {
 			delete(dna.SynapseMap, key)
@@ -213,7 +213,6 @@ func (dna DNA) Mutate(rng *rand.Rand) {
 }
 
 func (dna DNA) Crossover(dna2 DNA, rng *rand.Rand) {
-	// Get dna
 	if len(dna2.SynapseMap) != len(dna.SynapseMap) {
 		return
 	}

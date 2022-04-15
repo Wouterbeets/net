@@ -32,7 +32,7 @@ func TestDNAToNet(t *testing.T) {
 	assert.Equal(t, len(n.in), len(n2.in))
 	assert.Equal(t, len(n.hidden), len(n2.hidden))
 	assert.Equal(t, len(n.out), len(n2.out))
-	assert.Equal(t, len(n.store), len(n2.store))
+	assert.Equal(t, len(n.neuronStore), len(n2.neuronStore))
 	assert.Equal(t, len(n.synapses()), len(n2.synapses()))
 
 	out, err := n.Eval([]float64{1, 1})

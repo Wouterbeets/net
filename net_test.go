@@ -47,7 +47,7 @@ func TestNeuronStore(t *testing.T) {
 	}
 
 	before := n.in[0].bias
-	n.store[0].bias = 200
+	n.neuronStore[0].bias = 200
 	after := n.in[0].bias
 	if before == after {
 		t.Errorf("modifying store does not modify slice")
