@@ -33,7 +33,6 @@ func (s *Snake) Play(g snake.GameState) snake.Move {
 	life := g.Life(s.ID)
 	in := make([]float64, len(vis))
 	in = append(in, life)
-
 	for i := range vis {
 		in[i] = float64(vis[i])
 	}
@@ -50,8 +49,8 @@ func (s *Snake) SetID(id snake.ID) {
 
 func (s *Snake) Evaluate() (float64, error) {
 
-	gameRounds := 100
-	rounds := 100
+	gameRounds := 3
+	rounds := 1000
 	var score float64
 	for gr := 0; gr < gameRounds; gr++ {
 		g, err := snake.NewGame(20, 20, []snake.Player{
@@ -127,7 +126,7 @@ func (p *Snake) Clone() eaopt.Genome {
 }
 
 func NewSnake(rng *rand.Rand) eaopt.Genome {
-	n, err := net.NewBuilder().Size(11, 1, 3).Build()
+	n, err := net.NewBuilder().Size(22, 5, 3).Build()
 	if err != nil {
 		fmt.Println("error making new nn")
 	}
@@ -185,34 +184,55 @@ func main() {
 	}
 	l := log.Default()
 	l.SetOutput(f)
-	//ga.Logger = l
+	ga.Logger = l
 
 	sigs := make(chan os.Signal, 1)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	ga.PopSize = 1000
-	ga.NPops = 100
+	ga.NPops = 10
 	ga.NGenerations = 1000000
 	ga.ParallelEval = true
 	ga.HofSize = 3
 	ga.Model = eaopt.ModDownToSize{
 		NOffsprings: 2,
 		SelectorA: eaopt.SelTournament{
-			NContestants: 999,
+			NContestants: 3,
 		},
 		SelectorB: eaopt.SelElitism{},
-		MutRate:   0.8,
-		CrossRate: 0.8,
+		MutRate:   1,
+		CrossRate: 1,
 	}
-	ga.Migrator = eaopt.MigRing{NMigrants: 1}
-	ga.MigFrequency = 100
+	ga.Migrator = eaopt.MigRing{NMigrants: 3}
+	ga.MigFrequency = 10
 	// Add a custom print function to track progress
 	ga.Callback = func(ga *eaopt.GA) {
-		log.Printf("Best fitness at generation %d: %.30f\n", ga.Generations, ga.HallOfFame[0].Fitness)
+		var (
+			distMin   float64
+			distMax   float64
+			distSum   float64
+			popSum    float64
+			popAvgSum float64
+		)
 		for _, p := range ga.Populations {
-			log.Printf("std: %.3f \t", p.Individuals.FitStd())
+			pDist := p.Individuals.FitStd()
+			distSum += pDist
+			popSum += p.Individuals.FitMin()
+			popAvgSum += p.Individuals.FitAvg()
+			if pDist < distMin {
+				distMin = pDist
+			}
+			if pDist > distMax {
+				distMax = pDist
+			}
 		}
+		log.Printf("gen: %d\thof: %.6f\tdistAvg: %.6f\tavgScore: %.6f",
+			ga.Generations,
+			ga.HallOfFame[0].Fitness,
+			distSum/float64(len(ga.Populations)),
+			popAvgSum/float64(len(ga.Populations)),
+		)
 	}
 	ga.EarlyStop = func(ga *eaopt.GA) bool {
 		if ga.HallOfFame[0].Fitness < -100000 {

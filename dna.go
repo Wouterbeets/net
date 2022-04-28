@@ -171,11 +171,11 @@ func (dna DNA) Mutate(rng *rand.Rand) {
 		biases = append(biases, neur.Bias)
 	}
 
-	eaopt.MutNormalFloat64(weights, 0.1, rng)
-	eaopt.MutNormalFloat64(biases, 0.1, rng)
+	eaopt.MutNormalFloat64(weights, 1, rng)
+	eaopt.MutNormalFloat64(biases, 1, rng)
 
 	// Switch connections
-	if rng.Float64() < 0.01 {
+	if rng.Float64() < 1 {
 		eaopt.MutPermuteInt(sources, 1, rng)
 		eaopt.MutPermuteInt(destinations, 1, rng)
 	}
@@ -191,9 +191,9 @@ func (dna DNA) Mutate(rng *rand.Rand) {
 	}
 
 	// Add synapses
-	if rng.Float64() < 0.9 {
-		sourceID := rand.Intn(len(dna.Neurons) + 1)
-		destID := rand.Intn(len(dna.Neurons) + 1)
+	if rng.Float64() < 1 {
+		sourceID := rand.Intn(len(dna.Neurons) + 3)
+		destID := rand.Intn(len(dna.Neurons) + 3)
 
 		sg := SynapseGene{
 			SourceID: sourceID,
@@ -256,7 +256,7 @@ func (dna DNA) Crossover(dna2 DNA, rng *rand.Rand) {
 		}
 	})
 
-	eaopt.CrossGNX(pSynapses, p2Synapses, 1, rng)
+	eaopt.CrossERX(pSynapses, p2Synapses)
 
 	dna.SynapseMap = make(map[SynapseGene]struct{}, len(pSynapses))
 	for _, g := range pSynapses {
